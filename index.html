@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WS Damage Calculator</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header__title">WS Calc</div>
+  <div class="app-header__controls">
+    <label class="mode-toggle" title="Dev-режим открывает незавершённый функционал (напр. защиту)">
+      <input type="checkbox" id="envToggle">
+      <span>Dev-режим</span>
+    </label>
+    <button id="themeToggle" class="icon-btn" title="Переключить тему" aria-label="Переключить тему">🌓</button>
+  </div>
+</header>
+
+<main class="app-main">
+
+  <section class="panel panel-class" aria-label="Выбор класса">
+    <h2 class="panel__title">Класс</h2>
+    <div id="classSelect" class="class-hierarchy"></div>
+  </section>
+
+  <section class="panel panel-character" aria-label="Параметры персонажа">
+    <div class="panel-controls">
+      <label class="mode-toggle" title="Базовый / Продвинутый режим ввода характеристик">
+        <input type="checkbox" id="modeToggle">
+        <span>Продвинутый режим</span>
+      </label>
+    </div>
+
+    <nav class="tabs" id="characterTabs">
+      <button class="tab is-active" data-tab="stats">Основная</button>
+      <button class="tab" data-tab="talents">Таланты</button>
+      <button class="tab is-disabled" data-tab="buffs" disabled title="Пока не настроено: реальные значения бафов не заполнены">Бафы</button>
+    </nav>
+
+    <div class="tab-panel is-active" data-tab-panel="stats" id="statsPanel">
+      <!-- заполняется динамически: базовые/продвинутые поля статов -->
+    </div>
+
+    <div class="tab-panel" data-tab-panel="talents" id="talentsPanel">
+      <!-- список талантов -->
+    </div>
+
+    <div class="tab-panel" data-tab-panel="buffs" id="buffsPanel">
+      <!-- расходники / гильдия / питомцы / внешние бафы -->
+    </div>
+  </section>
+
+  <section class="panel panel-target" aria-label="Параметры цели">
+    <h2 class="panel__title">Цель</h2>
+    <div id="targetSelect" class="target-select"></div>
+
+    <h3 class="panel__subtitle">Защита цели</h3>
+    <div id="targetStatsFields"></div>
+  </section>
+
+  <section class="panel panel-results" aria-label="Итоги расчёта">
+    <h2 class="panel__title">Итог</h2>
+    <div class="results-columns">
+      <div class="results-col">
+        <div id="resultsSummary" class="results-summary"></div>
+      </div>
+      <div class="results-col">
+        <h3 class="panel__subtitle">Навыки</h3>
+        <div id="resultsSkills" class="results-skills"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel panel-saves" aria-label="Сохранённые расчёты">
+    <h2 class="panel__title">Сохранённые сборки</h2>
+    <div class="saves-controls">
+      <input type="text" id="saveName" placeholder="Название сборки">
+      <button id="saveBuildBtn">Сохранить текущую</button>
+    </div>
+    <div id="savesList" class="saves-list"></div>
+  </section>
+
+  <section class="panel panel-debug" aria-label="Отладка формул" id="debugPanel">
+    <h2 class="panel__title">Debug: проверка формул</h2>
+    <p class="panel__hint">Вводишь реальные значения из игры (свои и цели) и ожидаемый урон из лога/наблюдения — сверяем с расчётом калькулятора.</p>
+    <div id="debugContent"></div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  <span>Неофициальный калькулятор по Warspear Online. Данные и формулы собраны из открытых источников/сообщества.</span>
+</footer>
+
+<script src="data/classes.js"></script>
+<script src="data/stats.js"></script>
+<script src="data/talents.js"></script>
+<script src="data/buffs.js"></script>
+<script src="data/targets.js"></script>
+<script src="data/relics.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/state.js"></script>
+<script src="js/formulas.js"></script>
+<script src="js/ui-class.js"></script>
+<script src="js/ui-stats.js"></script>
+<script src="js/ui-talents.js"></script>
+<script src="js/ui-buffs.js"></script>
+<script src="js/ui-target.js"></script>
+<script src="js/ui-results.js"></script>
+<script src="js/ui-saves.js"></script>
+<script src="js/ui-debug.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
