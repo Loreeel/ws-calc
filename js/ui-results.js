@@ -1,24 +1,50 @@
 (function () {
   var lastSkillsClassId = undefined;
 
-  function renderSummary(effStats) {
+  function formatPercent(value) {
+    return (value >= 0 ? "+" : "") + (Math.round(value * 100) / 100) + "%";
+  }
+
+  // Текст тултипа: "фиксированный ДД" (введено + уровень) и "% ДД" (введено + фракция +
+  // таланты на этот %-стат) — см. WsFormulas.getPowerBreakdown.
+  function buildPowerTooltip(state, type) {
+    var b = WsFormulas.getPowerBreakdown(state, type);
+    var lines = [];
+
+    lines.push("Фиксированный ДД: " + b.fixInput + " (введено) + " + b.levelBonus + " (уровень) = " + b.fixTotal);
+
+    if (b.percentEntries.length === 0) {
+      lines.push("% ДД: 0%");
+    } else {
+      lines.push("% ДД:");
+      b.percentEntries.forEach(function (e) {
+        lines.push("  " + e.label + ": " + formatPercent(e.value));
+      });
+      lines.push("  Итого: " + formatPercent(b.percentTotal));
+    }
+
+    return lines.join("\n");
+  }
+
+  function renderSummary(effStats, state) {
     var summaryRoot = document.getElementById("resultsSummary");
     summaryRoot.innerHTML = "";
 
     [
-      ["physPower", "Physical Power"],
-      ["magicPower", "Magic Power"],
-      ["physPenetration", "Physical Penetration, %"],
-      ["magicPenetration", "Magic Penetration, %"],
-      ["physResistance", "Physical Resistance"],
-      ["magicResistance", "Magic Resistance"],
-      ["hp", "Health"]
-    ].forEach(function (pair) {
+      ["physPower", "Physical Power", "physical"],
+      ["magicPower", "Magic Power", "magic"],
+      ["physPenetration", "Physical Penetration, %", null],
+      ["magicPenetration", "Magic Penetration, %", null],
+      ["physResistance", "Physical Resistance", null],
+      ["magicResistance", "Magic Resistance", null],
+      ["hp", "Health", null]
+    ].forEach(function (triple) {
       var row = document.createElement("div");
       row.className = "stat-row";
+      if (triple[2]) row.title = buildPowerTooltip(state, triple[2]);
       row.innerHTML =
-        '<span class="stat-row__label">' + pair[1] + '</span>' +
-        '<span class="stat-row__value">' + Math.round(effStats[pair[0]] * 100) / 100 + '</span>';
+        '<span class="stat-row__label">' + triple[1] + '</span>' +
+        '<span class="stat-row__value">' + Math.round(effStats[triple[0]] * 100) / 100 + '</span>';
       summaryRoot.appendChild(row);
     });
   }
@@ -224,7 +250,7 @@
     var effStats = WsFormulas.getEffectiveStats(state);
     var target = WsFormulas.getTarget(state.targetId);
 
-    renderSummary(effStats);
+    renderSummary(effStats, state);
     renderSkillsPanel(state, effStats, target);
   }
 

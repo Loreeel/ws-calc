@@ -1,11 +1,6 @@
 (function () {
   document.addEventListener("DOMContentLoaded", function () {
 
-    var modeToggle = document.getElementById("modeToggle");
-    modeToggle.addEventListener("change", function () {
-      WsState.set({ mode: modeToggle.checked ? "advanced" : "basic" });
-    });
-
     var envToggle = document.getElementById("envToggle");
     envToggle.addEventListener("change", function () {
       WsState.set({ envMode: envToggle.checked ? "dev" : "prod" });

@@ -10,8 +10,122 @@
 
 var WsFormulas = (function () {
 
-  // Применяет статовые эффекты талантов/баффов к копии state.stats (не трогает урон
-  // конкретных навыков — для этого см. getSkillTalentDamageBonusPercent).
+  var POWER_RELATED_STATS = ["physPower", "magicPower", "physPowerPercent", "magicPowerPercent"];
+
+  // "% потерянного HP" для talentId: либо принудительно зафиксирован другим талантом
+  // (forcesMissingHpFor), либо взят из ручного ввода на вкладке "Таланты".
+  function getMissingHpForTalent(talentId, classTalents, state) {
+    var forcer = classTalents.find(function (t) {
+      return t.forcesMissingHpFor === talentId && (state.talents[t.id] || 0) > 0;
+    });
+    if (forcer) return forcer.forcedMissingHpValue;
+    return (state.talentInputs && state.talentInputs[talentId]) || 0;
+  }
+
+  // Стак засчитывается только за ПОЛНЫЙ пройденный порог (строго больше stackHpStep*n,
+  // не "или равно") — 3.49% при шаге 3.5% даёт 0 стаков, а ровно 70% при шаге 3.5% даёт
+  // 19 стаков, а не 20 (эмпирика: ровно на границе стак ещё не засчитан).
+  // ceil(x/step) - 1 даёт то же самое без спецразбора "ровно на границе":
+  //   3.49/3.5 -> ceil(0.997)-1 = 1-1 = 0
+  //   70/3.5   -> ceil(20)-1   = 20-1 = 19
+  //   73.5/3.5 -> ceil(21)-1  = 21-1 = 20
+  function getMissingHpStacks(missingHp, stackHpStep) {
+    if (missingHp <= 0) return 0;
+    return Math.max(0, Math.ceil(missingHp / stackHpStep) - 1);
+  }
+
+  // % от одного стакающегося по HP таланта (Внутренняя ярость и т.п.), с учётом
+  // вложенных саб-талантов вроде "Внутренняя ярость +", повышающих силу стака.
+  function getMissingHpStackPercent(talent, level, classTalents, state) {
+    var effect = talent.effect;
+    var missingHp = getMissingHpForTalent(talent.id, classTalents, state);
+    var stackHpStep = (effect.stackHpStepByLevel && effect.stackHpStepByLevel[level]) || effect.stackHpStep || 1;
+    var stacks = getMissingHpStacks(missingHp, stackHpStep);
+
+    var percentPerStack = effect.percentPerStack || 0;
+    var bonusTalent = classTalents.find(function (t) {
+      return t.subTalentOf === talent.id && t.effect && t.effect.type === "missingHpStackBonusPercent";
+    });
+    if (bonusTalent && (state.talents[bonusTalent.id] || 0) > 0) {
+      percentPerStack += bonusTalent.effect.bonusPerStack;
+    }
+
+    return percentPerStack * stacks;
+  }
+
+  // Единая сборка Physical/Magic Power: "фиксированный ДД" (введено вручную + уровень +
+  // плоские баффы) и "% ДД" (введённый вручную "..., %", фракция, ЛЮБЫЕ таланты/баффы,
+  // дающие % урона этому типу — независимо от того, бьют они формально по полю
+  // "..., %" или напрямую по Physical/Magic Power: игра считает это одним и тем же
+  // процентом, а не отдельными перемножаемыми слоями). Используется и для самого
+  // расчёта (getEffectiveStats), и для тултипа в блоке "Итог" — один источник правды.
+  function getPowerBreakdown(state, type) {
+    var powerField = type === "magic" ? "magicPower" : "physPower";
+    var percentField = type === "magic" ? "magicPowerPercent" : "physPowerPercent";
+    var classTalents = WS_TALENTS[state.classId] || [];
+
+    var fixInput = state.stats[powerField] || 0;
+    var levelBonus = state.stats.level || 0;
+    var fixTotal = fixInput + levelBonus;
+
+    var percentEntries = [];
+    var manualPercent = state.stats[percentField] || 0;
+    if (manualPercent) percentEntries.push({ label: "Введено вручную", value: manualPercent });
+
+    Object.keys(state.talents).forEach(function (talentId) {
+      var level = state.talents[talentId];
+      if (!level) return;
+      var t = classTalents.find(function (x) { return x.id === talentId; });
+      if (!t || !t.effect) return;
+      var eff = t.effect;
+
+      if (eff.type === "statPercent" && (eff.stat === powerField || eff.stat === percentField)) {
+        percentEntries.push({ label: t.name, value: eff.valuePerLevel * level });
+      } else if (eff.type === "missingHpStackStatPercent" && eff.stat === powerField) {
+        var value = getMissingHpStackPercent(t, level, classTalents, state);
+        if (value) percentEntries.push({ label: t.name, value: value });
+      }
+    });
+
+    // Бафы (Зелье/Свиток) — каждый привязан к ОДНОМУ типу урона (см. data/buffs.js),
+    // учитываются только когда buffInputs.<id>.type совпадает с текущим type.
+    var potionCfg = state.buffInputs && state.buffInputs.potion;
+    if (potionCfg && potionCfg.percent && potionCfg.type === type) {
+      percentEntries.push({ label: "Зелье", value: potionCfg.percent });
+    }
+
+    var scrollCfg = state.buffInputs && state.buffInputs.scroll;
+    if (scrollCfg && scrollCfg.value && scrollCfg.type === type) {
+      if (scrollCfg.mode === "percent") {
+        percentEntries.push({ label: "Свиток", value: scrollCfg.value });
+      } else {
+        fixTotal += scrollCfg.value;
+      }
+    }
+
+    var cls = WS_CLASSES.find(function (c) { return c.id === state.classId; });
+    if (cls && cls.faction === "chosen") {
+      percentEntries.push({ label: "Фракция Chosen (Избранные)", value: 2 });
+    }
+
+    var percentTotal = percentEntries.reduce(function (sum, e) { return sum + e.value; }, 0);
+
+    // Округление в меньшую сторону (floor), как в эталонном расчёте игрока.
+    var finalValue = Math.floor(fixTotal * (1 + percentTotal / 100));
+
+    return {
+      fixInput: fixInput,
+      levelBonus: levelBonus,
+      fixTotal: fixTotal,
+      percentEntries: percentEntries,
+      percentTotal: percentTotal,
+      finalValue: finalValue
+    };
+  }
+
+  // Применяет статовые эффекты талантов/баффов к копии state.stats — КРОМЕ
+  // Physical/Magic Power и их "..., %" полей, те считаются отдельно в getPowerBreakdown
+  // (не трогает урон конкретных навыков — для этого см. getSkillTalentDamageBonusPercent).
   function getEffectiveStats(state) {
     var s = Object.assign({}, state.stats);
     var classTalents = WS_TALENTS[state.classId] || [];
@@ -21,26 +135,20 @@ var WsFormulas = (function () {
       if (!level) return;
       var t = classTalents.find(function (x) { return x.id === talentId; });
       if (!t || !t.effect) return;
-      applyTalentStatEffect(s, t.effect, level);
+      var eff = t.effect;
+
+      if (eff.type === "missingHpStackStatPercent") return; // учтено в getPowerBreakdown
+      if (eff.type === "statPercent" && POWER_RELATED_STATS.indexOf(eff.stat) !== -1) return; // учтено в getPowerBreakdown
+
+      applyTalentStatEffect(s, eff, level);
     });
 
-    state.buffs.forEach(function (buffId) {
-      var all = [].concat(WS_BUFFS.consumable, WS_BUFFS.guild, WS_BUFFS.pet, WS_BUFFS.external);
-      var b = all.find(function (x) { return x.id === buffId; });
-      if (b && b.effect) applyEffect(s, b.effect);
-    });
+    var physBreakdown = getPowerBreakdown(state, "physical");
+    var magicBreakdown = getPowerBreakdown(state, "magic");
+    s.physPower = physBreakdown.finalValue;
+    s.magicPower = magicBreakdown.finalValue;
 
     return s;
-  }
-
-  // Старый формат эффекта (баффы): { stat, value, percent }.
-  function applyEffect(statsObj, effect) {
-    if (!effect || !(effect.stat in statsObj)) return;
-    if (effect.percent) {
-      statsObj[effect.stat] *= (1 + effect.value / 100);
-    } else {
-      statsObj[effect.stat] += effect.value;
-    }
   }
 
   // Новый формат эффекта (таланты): { type, stat/skills, valuePerLevel }.
@@ -121,6 +229,10 @@ var WsFormulas = (function () {
   return {
     getEffectiveStats: getEffectiveStats,
     getSkillTalentDamageBonusPercent: getSkillTalentDamageBonusPercent,
+    getMissingHpForTalent: getMissingHpForTalent,
+    getMissingHpStacks: getMissingHpStacks,
+    getMissingHpStackPercent: getMissingHpStackPercent,
+    getPowerBreakdown: getPowerBreakdown,
     getTarget: getTarget,
     physicalDamage: physicalDamage,
     magicDamage: magicDamage,

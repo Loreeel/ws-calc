@@ -10,7 +10,7 @@
 var WS_STATS = {
 
   meta: [
-    { id: "level", name: "Уровень", group: "meta", basic: true, min: 1, max: 34, default: 34 }
+    { id: "level", name: "Уровень", group: "meta", basic: false, min: 1, max: 34, default: 34 }
   ],
 
   state: [

@@ -1,5 +1,5 @@
 (function () {
-  var lastMode = null;
+  var lastCacheKey = null;
 
   var GROUP_LABELS = {
     meta: null,
@@ -7,13 +7,7 @@
     defense: "Защита"
   };
 
-  // Ряды группы "Атака". Базовый режим: физ./маг. атака одним полем.
-  // Продвинутый режим: физ./маг. атака делится на числовое + процентное (4 поля в 1-м ряду).
-  // Остальные "продвинутые" поля (Attack Strength, Ferocity, Penetration, Accuracy, Rage,
-  // Attack Speed, Life Steal, Expertise, Energy/Regen) пока убраны из интерфейса — статы
-  // сохранены в data/stats.js и в состоянии, просто временно не редактируются через UI.
-  var ATTACK_ROW1_BASIC = ["physPower", "magicPower"];
-  var ATTACK_ROW1_ADVANCED = ["physPower", "physPowerPercent", "magicPower", "magicPowerPercent"];
+  // Ряд 2 группы "Атака" — не зависит от типа урона класса.
   var ATTACK_ROW2 = ["penetrationPower", "skillPower", "critDamagePower", "autoAttackPower"];
 
   function allDefsFlat() {
@@ -24,12 +18,38 @@
     return allDefsFlat().find(function (d) { return d.id === id; });
   }
 
-  function buildField(def, state) {
+  function getDamageTypes(classId) {
+    var cls = WS_CLASSES.find(function (c) { return c.id === classId; });
+    return (cls && cls.damageTypes) || ["physical", "magic"];
+  }
+
+  // Физ./маг. атака всегда делится на "fix" (число) + "%" (неотключаемые % бонусы) —
+  // для корректного расчёта их всё равно нужно вводить отдельно (см. getPowerBreakdown).
+  // Показываются только типы урона, которые использует выбранный класс (damageTypes).
+  function getAttackRow1(damageTypes) {
+    var ids = [];
+    var labelOverrides = {};
+
+    if (damageTypes.indexOf("physical") !== -1) {
+      ids.push("physPower");
+      labelOverrides.physPower = "Physical Power, fix";
+      ids.push("physPowerPercent");
+    }
+    if (damageTypes.indexOf("magic") !== -1) {
+      ids.push("magicPower");
+      labelOverrides.magicPower = "Magic Power, fix";
+      ids.push("magicPowerPercent");
+    }
+
+    return { ids: ids, labelOverrides: labelOverrides };
+  }
+
+  function buildField(def, state, labelText) {
     var wrap = document.createElement("div");
     wrap.className = "field";
 
     var label = document.createElement("label");
-    label.textContent = def.name + (def.cap != null ? " (макс. " + def.cap + ")" : "");
+    label.textContent = (labelText || def.name) + (def.cap != null ? " (макс. " + def.cap + ")" : "");
     label.setAttribute("for", "stat_" + def.id);
     if (def.note) label.title = def.note;
 
@@ -51,13 +71,13 @@
     return wrap;
   }
 
-  function renderFieldsRow(root, ids, state) {
+  function renderFieldsRow(root, ids, state, labelOverrides) {
     var grid = document.createElement("div");
     grid.className = "field-grid";
     ids.forEach(function (id) {
       var def = findDef(id);
       if (!def) return;
-      grid.appendChild(buildField(def, state));
+      grid.appendChild(buildField(def, state, labelOverrides && labelOverrides[id]));
     });
     root.appendChild(grid);
   }
@@ -73,36 +93,36 @@
     root.appendChild(heading);
   }
 
-  function renderGroup(root, groupKey, defs, state, mode) {
-    var visibleDefs = defs.filter(function (def) { return mode === "advanced" || def.basic === true; });
-    if (visibleDefs.length === 0) return;
+  function renderGroup(root, groupKey, defs, state) {
+    if (defs.length === 0) return;
 
     renderHeading(root, groupKey);
 
     var grid = document.createElement("div");
     grid.className = "field-grid";
-    visibleDefs.forEach(function (def) { grid.appendChild(buildField(def, state)); });
+    defs.forEach(function (def) { grid.appendChild(buildField(def, state)); });
     root.appendChild(grid);
   }
 
   function render() {
     var root = document.getElementById("statsPanel");
     var state = WsState.get();
-    var mode = state.mode;
     var envMode = state.envMode;
 
     // Не перестраиваем DOM на каждое изменение стата (иначе теряется фокус ввода),
-    // только когда меняется режим базовый/продвинутый или prod/dev.
-    var cacheKey = mode + "|" + envMode;
-    if (cacheKey === lastMode) return;
-    lastMode = cacheKey;
+    // только когда меняется prod/dev или класс (влияет на видимость полей физ./маг.
+    // урона через damageTypes).
+    var cacheKey = envMode + "|" + state.classId;
+    if (cacheKey === lastCacheKey) return;
+    lastCacheKey = cacheKey;
 
     root.innerHTML = "";
 
-    renderGroup(root, "meta", WS_STATS.meta, state, mode);
+    renderGroup(root, "meta", WS_STATS.meta, state);
 
     renderHeading(root, "attack");
-    renderFieldsRow(root, mode === "advanced" ? ATTACK_ROW1_ADVANCED : ATTACK_ROW1_BASIC, state);
+    var row1 = getAttackRow1(getDamageTypes(state.classId));
+    renderFieldsRow(root, row1.ids, state, row1.labelOverrides);
     renderFieldsRow(root, ATTACK_ROW2, state);
 
     if (envMode === "dev") {
@@ -111,7 +131,7 @@
       devNote.style.marginTop = "14px";
       devNote.textContent = "Защита: функционал не откалиброван, значения ориентировочные (dev-режим).";
       root.appendChild(devNote);
-      renderGroup(root, "defense", WS_STATS.defense, state, mode);
+      renderGroup(root, "defense", WS_STATS.defense, state);
     }
   }
 

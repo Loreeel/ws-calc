@@ -12,7 +12,9 @@
     var container = document.createElement("div");
     container.className = "option-list";
 
-    list.forEach(function (t) {
+    // Саб-таланты (subTalentOf) не рендерятся отдельной строкой — они встраиваются
+    // вложенной галочкой внутрь строки "родительского" таланта (см. ниже).
+    list.filter(function (t) { return !t.subTalentOf; }).forEach(function (t) {
       var maxLevel = t.maxLevel || 1;
       var row = document.createElement("div");
       row.className = "option-row talent-row";
@@ -29,7 +31,7 @@
       checkbox.type = "checkbox";
       checkbox.id = "talent_" + t.id;
       checkbox.addEventListener("change", function () {
-        WsState.setTalentLevel(t.id, checkbox.checked ? 1 : 0);
+        WsState.setTalentLevel(t.id, checkbox.checked ? (t.defaultLevel || 1) : 0);
       });
       row.appendChild(checkbox);
       row.appendChild(main);
@@ -73,7 +75,9 @@
       if (t.description) {
         var desc = document.createElement("div");
         desc.className = "option-row__desc";
-        desc.textContent = t.description;
+        // Описания с "{percent}" пересчитываются в syncRows (зависят от саб-талантов вроде "+").
+        if (t.description.indexOf("{percent}") !== -1) desc.id = "talent_desc_" + t.id;
+        desc.textContent = t.description.replace("{percent}", t.effect ? t.effect.percentPerStack : "");
         main.appendChild(desc);
       }
 
@@ -84,6 +88,54 @@
         main.appendChild(note);
       }
 
+      if (t.effect && t.effect.type === "missingHpStackStatPercent") {
+        var hpRow = document.createElement("div");
+        hpRow.className = "talent-hp-input";
+
+        var hpLabel = document.createElement("label");
+        hpLabel.textContent = "Потеряно HP, %";
+        hpLabel.setAttribute("for", "talent_hp_" + t.id);
+
+        var hpInput = document.createElement("input");
+        hpInput.type = "number";
+        hpInput.id = "talent_hp_" + t.id;
+        hpInput.min = 0;
+        hpInput.max = 100;
+        hpInput.addEventListener("input", function () {
+          WsState.setTalentInput(t.id, Number(hpInput.value) || 0);
+        });
+
+        var hpStacks = document.createElement("span");
+        hpStacks.id = "talent_hp_stacks_" + t.id;
+        hpStacks.className = "talent-hp-input__stacks";
+
+        hpRow.appendChild(hpLabel);
+        hpRow.appendChild(hpInput);
+        hpRow.appendChild(hpStacks);
+        main.appendChild(hpRow);
+      }
+
+      var subTalent = list.find(function (other) { return other.subTalentOf === t.id; });
+      if (subTalent) {
+        var subRow = document.createElement("label");
+        subRow.className = "talent-subrow";
+        subRow.title = subTalent.description || "";
+
+        var subCheckbox = document.createElement("input");
+        subCheckbox.type = "checkbox";
+        subCheckbox.id = "talent_" + subTalent.id;
+        subCheckbox.addEventListener("change", function () {
+          WsState.setTalentLevel(subTalent.id, subCheckbox.checked ? 1 : 0);
+        });
+
+        var subName = document.createElement("span");
+        subName.textContent = subTalent.name;
+
+        subRow.appendChild(subCheckbox);
+        subRow.appendChild(subName);
+        main.appendChild(subRow);
+      }
+
       container.appendChild(row);
     });
 
@@ -91,7 +143,7 @@
   }
 
   function syncRows(list, state) {
-    list.forEach(function (t) {
+    list.filter(function (t) { return !t.subTalentOf; }).forEach(function (t) {
       var level = state.talents[t.id] || 0;
       var maxLevel = t.maxLevel || 1;
 
@@ -108,6 +160,44 @@
             btn.disabled = level === 0;
           });
         }
+      }
+
+      if (t.effect && t.effect.type === "missingHpStackStatPercent") {
+        var hpInput = document.getElementById("talent_hp_" + t.id);
+        var hpStacksEl = document.getElementById("talent_hp_stacks_" + t.id);
+        if (hpInput) {
+          var forcer = list.find(function (other) {
+            return other.forcesMissingHpFor === t.id && (state.talents[other.id] || 0) > 0;
+          });
+          var missingHp = WsFormulas.getMissingHpForTalent(t.id, list, state);
+
+          hpInput.disabled = !!forcer;
+          if (document.activeElement !== hpInput) hpInput.value = missingHp;
+
+          if (hpStacksEl) {
+            var stackHpStep = (t.effect.stackHpStepByLevel && t.effect.stackHpStepByLevel[level]) || t.effect.stackHpStep || 1;
+            var stacks = WsFormulas.getMissingHpStacks(missingHp, stackHpStep);
+            var totalPercent = WsFormulas.getMissingHpStackPercent(t, level, list, state);
+
+            var percentPerStack = t.effect.percentPerStack || 0;
+            var subTalent = list.find(function (other) { return other.subTalentOf === t.id; });
+            if (subTalent && (state.talents[subTalent.id] || 0) > 0) {
+              percentPerStack += subTalent.effect.bonusPerStack;
+            }
+
+            hpStacksEl.textContent = "≈" + stacks + " стак. (+" + Math.round(totalPercent * 100) / 100 + "%)" +
+              (forcer ? " · зафиксировано «" + forcer.name + "»" : "");
+
+            var descEl = document.getElementById("talent_desc_" + t.id);
+            if (descEl) descEl.textContent = t.description.replace("{percent}", percentPerStack);
+          }
+        }
+      }
+
+      var subTalentSync = list.find(function (other) { return other.subTalentOf === t.id; });
+      if (subTalentSync) {
+        var subCheckbox = document.getElementById("talent_" + subTalentSync.id);
+        if (subCheckbox) subCheckbox.checked = (state.talents[subTalentSync.id] || 0) > 0;
       }
     });
   }

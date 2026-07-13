@@ -9,12 +9,15 @@ var WsState = (function () {
   }
 
   var state = {
-    mode: "basic", // "basic" | "advanced"
     envMode: "prod", // "prod" | "dev" — dev открывает незавершённый функционал (напр. защиту)
     classId: null,
     stats: buildDefaultStats(),
     talents: {},   // { [talentId]: level } — level 0/отсутствие ключа = не выбран
-    buffs: [],     // selected buff ids
+    talentInputs: {}, // { [talentId]: number } — доп. ручной ввод для талантов вроде "% потерянного HP"
+    buffInputs: {  // ручной ввод по бафам (см. data/buffs.js) — каждый привязан к 1 типу урона
+      potion: { percent: 0, type: "physical" },              // type: "physical" | "magic"
+      scroll: { mode: "percent", value: 0, type: "physical" } // mode: "fixed" | "percent"
+    },
     targetId: "normal",
     targetStats: {
       physDef: 0,        // Physical Defense цели
@@ -107,10 +110,13 @@ var WsState = (function () {
     notify();
   }
 
-  function toggleInList(listKey, id) {
-    var idx = state[listKey].indexOf(id);
-    if (idx === -1) state[listKey].push(id);
-    else state[listKey].splice(idx, 1);
+  function setTalentInput(talentId, value) {
+    state.talentInputs[talentId] = value;
+    notify();
+  }
+
+  function setBuffInput(buffId, patch) {
+    state.buffInputs[buffId] = Object.assign({}, state.buffInputs[buffId], patch);
     notify();
   }
 
@@ -133,10 +139,10 @@ var WsState = (function () {
 
   return {
     get: get, set: set, setStat: setStat, setTargetStat: setTargetStat,
-    toggleInList: toggleInList,
     getSkillConfig: getSkillConfig, setSkillLevel: setSkillLevel,
     addSkillRelic: addSkillRelic, removeSkillRelic: removeSkillRelic,
-    setTalentLevel: setTalentLevel,
+    setTalentLevel: setTalentLevel, setTalentInput: setTalentInput,
+    setBuffInput: setBuffInput,
     subscribe: subscribe, notify: notify,
     snapshot: snapshot, restore: restore
   };

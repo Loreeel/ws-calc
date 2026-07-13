@@ -49,15 +49,6 @@
   cursor: pointer;
 }
 
-.panel-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-}
-
 /* --- class select --- */
 
 .class-hierarchy {
@@ -217,6 +208,30 @@
   font-size: 13px;
 }
 
+.buff-value-input {
+  width: 70px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.buff-mode-select {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.buff-suffix {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .option-row__desc {
   font-size: 11px;
   color: var(--text-muted);
@@ -263,6 +278,45 @@
   text-align: center;
 }
 
+.talent-hp-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.talent-hp-input input {
+  width: 60px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.talent-hp-input input:disabled {
+  opacity: .5;
+}
+
+.talent-hp-input__stacks {
+  font-style: italic;
+}
+
+.talent-subrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding-left: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-left: 2px solid var(--border);
+  cursor: pointer;
+}
+
 /* --- target select --- */
 
 .target-select {
@@ -300,6 +354,10 @@
   background: var(--bg-input);
   border: 1px solid var(--border);
   border-radius: 6px;
+}
+
+.stat-row[title] {
+  cursor: help;
 }
 
 .stat-row__label {

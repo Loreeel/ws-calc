@@ -29,17 +29,10 @@
   </section>
 
   <section class="panel panel-character" aria-label="Параметры персонажа">
-    <div class="panel-controls">
-      <label class="mode-toggle" title="Базовый / Продвинутый режим ввода характеристик">
-        <input type="checkbox" id="modeToggle">
-        <span>Продвинутый режим</span>
-      </label>
-    </div>
-
     <nav class="tabs" id="characterTabs">
       <button class="tab is-active" data-tab="stats">Основная</button>
       <button class="tab" data-tab="talents">Таланты</button>
-      <button class="tab is-disabled" data-tab="buffs" disabled title="Пока не настроено: реальные значения бафов не заполнены">Бафы</button>
+      <button class="tab" data-tab="buffs">Бафы</button>
     </nav>
 
     <div class="tab-panel is-active" data-tab-panel="stats" id="statsPanel">
@@ -97,6 +90,13 @@
   <span>Неофициальный калькулятор по Warspear Online. Данные и формулы собраны из открытых источников/сообщества.</span>
 </footer>
 
+<script src="data/classes/_stub-skills.js"></script>
+<script src="data/classes/mage/skills.js"></script>
+<script src="data/classes/mage/talents.js"></script>
+<script src="data/classes/seeker/skills.js"></script>
+<script src="data/classes/seeker/talents.js"></script>
+<script src="data/classes/blade_dancer/talents.js"></script>
+<script src="data/classes/warden/talents.js"></script>
 <script src="data/classes.js"></script>
 <script src="data/stats.js"></script>
 <script src="data/talents.js"></script>
