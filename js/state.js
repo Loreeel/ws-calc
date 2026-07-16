@@ -232,12 +232,14 @@ var WsState = (function () {
 
   // Сливает загруженную сборку с дефолтной структурой состояния (а не заменяет её
   // целиком) — старые сборки, сохранённые до появления новых полей (сетка ДД, бафы
-  // и т.п.), догружают недостающее из дефолтов вместо поломки интерфейса.
-  function restore(snap) {
+  // и т.п.), догружают недостающее из дефолтов вместо поломки интерфейса. Чистая
+  // функция (не трогает глобальный state) — используется и в restore(), и в
+  // js/ui-compare.js для расчёта ЧУЖОЙ сборки без влияния на текущую сессию.
+  function mergeWithDefaults(snap) {
     var fresh = buildDefaultState();
     var loaded = JSON.parse(JSON.stringify(snap || {}));
 
-    state = {
+    return {
       envMode: loaded.envMode || fresh.envMode,
       classId: loaded.classId != null ? loaded.classId : fresh.classId,
       stats: Object.assign({}, fresh.stats, loaded.stats),
@@ -263,6 +265,10 @@ var WsState = (function () {
       targetDebuffs: loaded.targetDebuffs || {},
       skillsConfig: loaded.skillsConfig || {}
     };
+  }
+
+  function restore(snap) {
+    state = mergeWithDefaults(snap);
     notify();
   }
 
@@ -276,6 +282,6 @@ var WsState = (function () {
     setBuffInput: setBuffInput, setTargetDebuff: setTargetDebuff, setDamageGridCell: setDamageGridCell,
     setEquipmentMode: setEquipmentMode, setEquipmentAggregate: setEquipmentAggregate,
     subscribe: subscribe, notify: notify,
-    snapshot: snapshot, restore: restore
+    snapshot: snapshot, restore: restore, mergeWithDefaults: mergeWithDefaults
   };
 })();

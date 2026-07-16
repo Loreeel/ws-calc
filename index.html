@@ -76,6 +76,7 @@
     <div class="saves-controls">
       <input type="text" id="saveName" placeholder="Название сборки">
       <button id="saveBuildBtn">Сохранить текущую</button>
+      <button id="openCompareBtn" class="secondary">Сравнить сборки</button>
     </div>
     <div id="savesList" class="saves-list"></div>
   </section>
@@ -87,6 +88,25 @@
   </section>
 
 </main>
+
+<div class="modal-overlay" id="compareModalOverlay" hidden>
+  <div class="modal" id="compareModal" role="dialog" aria-label="Сравнение сборок">
+    <div class="modal__header">
+      <h2 class="modal__title">Сравнение сборок</h2>
+      <button id="compareModalClose" class="icon-btn" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="compare-columns">
+      <div class="compare-col">
+        <select id="compareSelectA" class="compare-col__select"></select>
+        <div id="compareContentA" class="compare-col__content"></div>
+      </div>
+      <div class="compare-col">
+        <select id="compareSelectB" class="compare-col__select"></select>
+        <div id="compareContentB" class="compare-col__content"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <footer class="app-footer">
   <span>Неофициальный калькулятор по Warspear Online. Данные и формулы собраны из открытых источников/сообщества.</span>
@@ -132,6 +152,7 @@
 <script src="js/ui-target.js"></script>
 <script src="js/ui-results.js"></script>
 <script src="js/ui-saves.js"></script>
+<script src="js/ui-compare.js"></script>
 <script src="js/ui-debug.js"></script>
 <script src="js/main.js"></script>
 </body>
