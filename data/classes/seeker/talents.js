@@ -70,5 +70,63 @@ var WS_SEEKER_TALENTS = [
     exclusiveGroup: "seeker_hardening",
     description: "+25% Сила автоатаки при экипированных кинжалах.",
     effect: { type: "statPercent", stat: "autoAttackPower", valuePerLevel: 25 }
+  },
+  {
+    id: "seeker_dangerous_strike_plus_minor",
+    name: "Опасный удар +",
+    category: "talents_minor",
+    maxLevel: 3,
+    description: "Увеличивает множитель от % ДД у периодич. (DoT) части «Опасного удара» на 1% / 2% / 3% (по уровням 1-3).",
+    effect: { type: "skillPowerScalingBonus", skills: ["seeker_dangerous_strike"], part: "secondary", baseValue: 1, valuePerLevel: 1 }
+  },
+  {
+    id: "seeker_dangerous_strike_crit_adventurers_guild",
+    name: "Гильдия Авантюристов: Опасный удар +",
+    category: "talents_minor",
+    maxLevel: 2,
+    description: "Увеличивает крит. урон «Опасного удара» на 1% / 2% (по уровням 1-2).",
+    note: "Критический урон временно не учитывается в расчёте (стат крита убран из калькулятора) — эффект сохранён, но пока не влияет на итоговую цифру.",
+    effect: { type: "skillCritDamagePercent", skills: ["seeker_dangerous_strike"], baseValue: 1, valuePerLevel: 1 }
+  },
+  {
+    id: "seeker_slash_plus_righteous_fury",
+    name: "Праведная ярость: Рассекание +",
+    category: "talents_minor",
+    maxLevel: 3,
+    description: "Увеличивает множитель от % ДД у «Рассекания» на 3% / 6% / 9% (по уровням 1-3).",
+    effect: { type: "skillPowerScalingBonus", skills: ["seeker_slash"], baseValue: 3, valuePerLevel: 3 }
+  },
+  {
+    id: "seeker_slash_plus_guild",
+    name: "Гильдия: Рассекание +",
+    category: "talents_minor",
+    maxLevel: 2,
+    description: "Увеличивает множитель от % ДД у «Рассекания» на 4.5% / 9% (по уровням 1-2).",
+    effect: { type: "skillPowerScalingBonus", skills: ["seeker_slash"], baseValue: 4.5, valuePerLevel: 4.5 }
+  },
+  {
+    id: "seeker_crushing_blow_plus_assassins_guild",
+    name: "Гильдия Ассасинов: Дробящий удар +",
+    category: "talents_minor",
+    maxLevel: 2,
+    description: "Увеличивает множитель от % ДД у «Дробящего удара» на 1.5% / 3% (по уровням 1-2).",
+    effect: { type: "skillPowerScalingBonus", skills: ["seeker_crushing_blow"], baseValue: 1.5, valuePerLevel: 1.5 }
+  },
+  {
+    id: "seeker_bloodlust_plus_ruthlessness",
+    name: "Беспощадность: Жажда крови +",
+    category: "talents_minor",
+    maxLevel: 1,
+    description: "Увеличивает множитель от % ДД у «Жажды крови» на 9%.",
+    effect: { type: "skillPowerScalingBonus", skills: ["seeker_bloodlust"], valuePerLevel: 9 }
+  },
+  {
+    id: "seeker_inspiration",
+    name: "Воодушевление",
+    category: "skills",
+    maxLevel: 1,
+    description: "Условные бонусы за тип экипированного оружия: пробивная способность, скорость атаки, перезарядка навыков (точные числа по рангам не указаны в источнике).",
+    note: "Числа не подтверждены источником — эффект не учитывается в расчёте, хранится как данные.",
+    effect: null
   }
 ];

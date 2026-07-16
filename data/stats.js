@@ -21,12 +21,6 @@ var WS_STATS = {
   attack: [
     { id: "attackStrength", name: "Attack Strength", group: "attack", basic: false, default: 0,
       note: "Увеличивает физ. и маг. урон от автоатак" },
-    { id: "physPower", name: "Physical Power", group: "attack", basic: true, default: 0,
-      note: "Урон физ. атаки/скилла, снижается Physical Resistance цели" },
-    { id: "physPowerPercent", name: "Physical Power, %", group: "attack", basic: true, default: 0 },
-    { id: "magicPower", name: "Magic Power", group: "attack", basic: true, default: 0,
-      note: "Урон маг. атаки/скилла, снижается Magic Resistance цели" },
-    { id: "magicPowerPercent", name: "Magic Power, %", group: "attack", basic: true, default: 0 },
     { id: "ferocity", name: "Ferocity", group: "attack", basic: false, default: 0,
       note: "+% урона по игрокам, тот же % СНИЖАЕТ урон по NPC" },
     { id: "physPenetration", name: "Physical Penetration, %", group: "attack", basic: false, default: 0, cap: 50,
@@ -44,7 +38,9 @@ var WS_STATS = {
     { id: "penetrationPower", name: "Пробивная способность (%)", group: "attack", basic: true, default: 0 },
     { id: "skillPower", name: "Сила навыков (%)", group: "attack", basic: true, default: 0 },
     { id: "critDamagePower", name: "Сила критического урона (%)", group: "attack", basic: true, default: 0 },
-    { id: "autoAttackPower", name: "Сила автоатаки (%)", group: "attack", basic: true, default: 0 }
+    { id: "autoAttackPower", name: "Сила автоатаки (%)", group: "attack", basic: true, default: 0 },
+    { id: "depthsWrath", name: "Гнев глубин (%)", group: "attack", basic: true, default: 0,
+      note: "Финальный множитель ×(1+X/100) поверх готового урона навыка (обычного И крита) — подтверждено формулой игрока." }
   ],
 
   defense: [

@@ -1,5 +1,180 @@
 (function () {
   var lastClassId;
+  var lastCacheKey = null;
+  // Верхний уровень: "skills" | "talents" | "ship_graveyard" | "golden_sands".
+  // Внутри "talents" — ещё один уровень: "talents_main" | "talents_minor".
+  var activeTopTab = "skills";
+  var activeTalentsSubTab = "talents_main";
+
+  var TOP_TABS = [
+    ["skills", "Навыки"],
+    ["talents", "Таланты"],
+    ["ship_graveyard", "Кладбище Кораблей"],
+    ["golden_sands", "Золотые пески"]
+  ];
+
+  var TALENTS_SUB_TABS = [
+    ["talents_main", "Основные"],
+    ["talents_minor", "Малые"]
+  ];
+
+  // Ветки/гильдии для фильтра вкладок Таланты->Основные/Малые (см. data/classes/mage/talents.js:
+  // поле branch на талантах). Классы без записи тут показывают все таланты без фильтра.
+  // Пока заведено только для Мага. Ветка и гильдия — ДВА НЕЗАВИСИМЫХ выпадающих списка
+  // (выбор ветки не влияет на выбор гильдии и наоборот), см. buildAffiliationRow.
+  var CLASS_BRANCH_OPTIONS = {
+    mage: [
+      ["pyromancy", "Пиромантия"],
+      ["geomancy", "Геомантия"],
+      ["arcane_magic", "Тайная магия"]
+    ]
+  };
+  var CLASS_GUILD_OPTIONS = {
+    mage: [
+      ["guild_adventurers", "Гильдия Авантюристов"],
+      ["guild_assassins", "Гильдия Ассасинов"],
+      ["guild_mages", "Гильдия Магов"]
+    ]
+  };
+
+  // Таланты без явного category считаются "talents_main" (старые заглушки без разбора).
+  function categoryOf(t) {
+    return t.category || "talents_main";
+  }
+
+  function getActiveCategory() {
+    return activeTopTab === "talents" ? activeTalentsSubTab : activeTopTab;
+  }
+
+  function buildNav(root) {
+    var topNav = document.createElement("div");
+    topNav.className = "subtabs";
+    topNav.id = "talentsTopNav";
+
+    TOP_TABS.forEach(function (pair) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "subtab";
+      btn.dataset.subtab = pair[0];
+      btn.textContent = pair[1];
+      btn.addEventListener("click", function () {
+        if (activeTopTab === pair[0]) return;
+        activeTopTab = pair[0];
+        lastCacheKey = null; // форсируем перестройку контента под новую вкладку
+        render();
+      });
+      topNav.appendChild(btn);
+    });
+
+    root.appendChild(topNav);
+
+    var innerNav = document.createElement("div");
+    innerNav.className = "subtabs subtabs--nested";
+    innerNav.id = "talentsInnerNav";
+    root.appendChild(innerNav);
+
+    var affiliationNav = document.createElement("div");
+    affiliationNav.className = "subtabs subtabs--affiliation";
+    affiliationNav.id = "talentsAffiliationNav";
+    root.appendChild(affiliationNav);
+
+    var content = document.createElement("div");
+    content.id = "talentsContent";
+    root.appendChild(content);
+
+    return content;
+  }
+
+  function syncNav(root, classId) {
+    var topNav = document.getElementById("talentsTopNav");
+    if (topNav) {
+      topNav.querySelectorAll(".subtab").forEach(function (btn) {
+        btn.classList.toggle("is-active", btn.dataset.subtab === activeTopTab);
+      });
+    }
+
+    var innerNav = document.getElementById("talentsInnerNav");
+    if (innerNav) {
+      innerNav.innerHTML = "";
+      if (activeTopTab === "talents") {
+        TALENTS_SUB_TABS.forEach(function (pair) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "subtab" + (activeTalentsSubTab === pair[0] ? " is-active" : "");
+          btn.textContent = pair[1];
+          btn.addEventListener("click", function () {
+            if (activeTalentsSubTab === pair[0]) return;
+            activeTalentsSubTab = pair[0];
+            lastCacheKey = null;
+            render();
+          });
+          innerNav.appendChild(btn);
+        });
+      }
+    }
+
+    // Две НЕЗАВИСИМЫЕ выпадашки "Ветка" / "Гильдия Альмахада" — видны ТОЛЬКО на вкладке
+    // "Основные" (сам фильтр применяется на обеих, Основные и Малые — см. render()).
+    // Общие таланты (без branch) видны всегда независимо от выбора.
+    var affiliationNav = document.getElementById("talentsAffiliationNav");
+    if (affiliationNav) {
+      affiliationNav.innerHTML = "";
+      var branchOptions = CLASS_BRANCH_OPTIONS[classId];
+      var guildOptions = CLASS_GUILD_OPTIONS[classId];
+      if (activeTopTab === "talents" && activeTalentsSubTab === "talents_main" && (branchOptions || guildOptions)) {
+        var current = (WsState.get().talentAffiliation || {})[classId] || {};
+
+        if (branchOptions) {
+          affiliationNav.appendChild(buildAffiliationSelect("Ветка", branchOptions, current.branch, function (value) {
+            WsState.setTalentAffiliation(classId, "branch", value);
+            lastCacheKey = null;
+            render();
+          }));
+        }
+
+        if (guildOptions) {
+          affiliationNav.appendChild(buildAffiliationSelect("Гильдия Альмахада", guildOptions, current.guild, function (value) {
+            WsState.setTalentAffiliation(classId, "guild", value);
+            lastCacheKey = null;
+            render();
+          }));
+        }
+      }
+    }
+  }
+
+  function buildAffiliationSelect(labelText, options, currentValue, onChange) {
+    var wrap = document.createElement("label");
+    wrap.className = "affiliation-select";
+
+    var labelEl = document.createElement("span");
+    labelEl.className = "affiliation-select__label";
+    labelEl.textContent = labelText;
+    wrap.appendChild(labelEl);
+
+    var select = document.createElement("select");
+    select.className = "affiliation-select__input";
+
+    var noneOpt = document.createElement("option");
+    noneOpt.value = "";
+    noneOpt.textContent = "— не выбрано —";
+    select.appendChild(noneOpt);
+
+    options.forEach(function (pair) {
+      var opt = document.createElement("option");
+      opt.value = pair[0];
+      opt.textContent = pair[1];
+      select.appendChild(opt);
+    });
+
+    select.value = currentValue || "";
+    select.addEventListener("change", function () {
+      onChange(select.value || null);
+    });
+
+    wrap.appendChild(select);
+    return wrap;
+  }
 
   function buildRows(root, list) {
     root.innerHTML = "";
@@ -115,6 +290,59 @@
         main.appendChild(hpRow);
       }
 
+      if (t.effect && t.effect.type === "targetHpBelowDamagePercent") {
+        var thRow = document.createElement("div");
+        thRow.className = "talent-hp-input";
+
+        var thLabel = document.createElement("label");
+        thLabel.textContent = "HP цели, %";
+        thLabel.setAttribute("for", "talent_targethp_" + t.id);
+
+        var thInput = document.createElement("input");
+        thInput.type = "number";
+        thInput.id = "talent_targethp_" + t.id;
+        thInput.min = 0;
+        thInput.max = 100;
+        thInput.addEventListener("input", function () {
+          WsState.setTalentInput(t.id, Number(thInput.value) || 0);
+        });
+
+        var thResult = document.createElement("span");
+        thResult.id = "talent_targethp_result_" + t.id;
+        thResult.className = "talent-hp-input__stacks";
+
+        thRow.appendChild(thLabel);
+        thRow.appendChild(thInput);
+        thRow.appendChild(thResult);
+        main.appendChild(thRow);
+      }
+
+      if (t.effect && t.effect.type === "playerCountBothPowerPercent") {
+        var pcRow = document.createElement("div");
+        pcRow.className = "talent-hp-input";
+
+        var pcLabel = document.createElement("label");
+        pcLabel.textContent = "Игроков на локации";
+        pcLabel.setAttribute("for", "talent_playercount_" + t.id);
+
+        var pcInput = document.createElement("input");
+        pcInput.type = "number";
+        pcInput.id = "talent_playercount_" + t.id;
+        pcInput.min = 0;
+        pcInput.addEventListener("input", function () {
+          WsState.setTalentInput(t.id, Number(pcInput.value) || 0);
+        });
+
+        var pcResult = document.createElement("span");
+        pcResult.id = "talent_playercount_result_" + t.id;
+        pcResult.className = "talent-hp-input__stacks";
+
+        pcRow.appendChild(pcLabel);
+        pcRow.appendChild(pcInput);
+        pcRow.appendChild(pcResult);
+        main.appendChild(pcRow);
+      }
+
       var subTalent = list.find(function (other) { return other.subTalentOf === t.id; });
       if (subTalent) {
         var subRow = document.createElement("label");
@@ -194,6 +422,41 @@
         }
       }
 
+      if (t.effect && t.effect.type === "playerCountBothPowerPercent") {
+        var pcInput = document.getElementById("talent_playercount_" + t.id);
+        var pcResultEl = document.getElementById("talent_playercount_result_" + t.id);
+        if (pcInput) {
+          if (document.activeElement !== pcInput) {
+            pcInput.value = (state.talentInputs && state.talentInputs[t.id]) || 0;
+          }
+          if (pcResultEl) {
+            var pcPercent = WsFormulas.getPlayerCountPercent(t, state);
+            var capped = pcPercent >= t.effect.cap;
+            pcResultEl.textContent = "+" + Math.round(pcPercent * 100) / 100 + "%" + (capped ? " (потолок)" : "");
+          }
+        }
+      }
+
+      if (t.effect && t.effect.type === "targetHpBelowDamagePercent") {
+        var thInput = document.getElementById("talent_targethp_" + t.id);
+        var thResultEl = document.getElementById("talent_targethp_result_" + t.id);
+        if (thInput) {
+          if (document.activeElement !== thInput) {
+            thInput.value = (state.talentInputs && state.talentInputs[t.id]) || 0;
+          }
+          if (thResultEl) {
+            var targetHp = (state.talentInputs && state.talentInputs[t.id]) || 0;
+            var isAbove = t.effect.direction === "above";
+            var isActive = isAbove ? targetHp > t.effect.threshold : (targetHp > 0 && targetHp < t.effect.threshold);
+            var thPercent = isActive ? WsFormulas.getTalentPercentValue(t.effect, level) : 0;
+            var cmp = isAbove ? "> " : "< ";
+            thResultEl.textContent = isActive
+              ? "+" + Math.round(thPercent * 100) / 100 + "% (" + cmp + t.effect.threshold + "%)"
+              : "неактивен (нужно " + cmp + t.effect.threshold + "%)";
+          }
+        }
+      }
+
       var subTalentSync = list.find(function (other) { return other.subTalentOf === t.id; });
       if (subTalentSync) {
         var subCheckbox = document.getElementById("talent_" + subTalentSync.id);
@@ -212,14 +475,49 @@
       return;
     }
 
-    var list = WS_TALENTS[state.classId] || [];
+    var allList = WS_TALENTS[state.classId] || [];
+    var activeCategory = getActiveCategory();
+    var visibleList = allList.filter(function (t) { return categoryOf(t) === activeCategory; });
 
-    if (lastClassId !== state.classId) {
-      lastClassId = state.classId;
-      buildRows(root, list);
+    // Фильтр по "текущей ветке" И "текущей гильдии" — НЕЗАВИСИМО друг от друга, только
+    // на вкладках Основные/Малые, только для классов с заведёнными CLASS_BRANCH_OPTIONS/
+    // CLASS_GUILD_OPTIONS (пока только Маг). Талант виден, если у него НЕТ branch
+    // ("Общие" — всегда), ИЛИ его branch совпадает с выбранной веткой, ИЛИ с выбранной
+    // гильдией (одно из двух достаточно).
+    var selectedBranch = null;
+    var selectedGuild = null;
+    var hasBranchOptions = !!CLASS_BRANCH_OPTIONS[state.classId];
+    var hasGuildOptions = !!CLASS_GUILD_OPTIONS[state.classId];
+    if (activeTopTab === "talents" && (hasBranchOptions || hasGuildOptions)) {
+      var currentAffiliation = (state.talentAffiliation || {})[state.classId] || {};
+      selectedBranch = currentAffiliation.branch || null;
+      selectedGuild = currentAffiliation.guild || null;
+      visibleList = visibleList.filter(function (t) {
+        if (!t.branch) return true;
+        var branches = Array.isArray(t.branch) ? t.branch : [t.branch];
+        return branches.indexOf(selectedBranch) !== -1 || branches.indexOf(selectedGuild) !== -1;
+      });
     }
 
-    syncRows(list, state);
+    var contentRoot;
+    if (lastClassId !== state.classId || !document.getElementById("talentsContent")) {
+      root.innerHTML = "";
+      contentRoot = buildNav(root);
+      lastClassId = state.classId;
+      lastCacheKey = null;
+    } else {
+      contentRoot = document.getElementById("talentsContent");
+    }
+
+    syncNav(root, state.classId);
+
+    var cacheKey = state.classId + "|" + activeCategory + "|" + selectedBranch + "|" + selectedGuild;
+    if (cacheKey !== lastCacheKey) {
+      lastCacheKey = cacheKey;
+      buildRows(contentRoot, visibleList);
+    }
+
+    syncRows(visibleList, state);
   }
 
   document.addEventListener("DOMContentLoaded", function () {

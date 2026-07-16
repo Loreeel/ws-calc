@@ -31,7 +31,7 @@
   <section class="panel panel-character" aria-label="Параметры персонажа">
     <nav class="tabs" id="characterTabs">
       <button class="tab is-active" data-tab="stats">Основная</button>
-      <button class="tab" data-tab="talents">Таланты</button>
+      <button class="tab" data-tab="talents">Навыки и таланты</button>
       <button class="tab" data-tab="buffs">Бафы</button>
     </nav>
 
@@ -54,6 +54,8 @@
 
     <h3 class="panel__subtitle">Защита цели</h3>
     <div id="targetStatsFields"></div>
+
+    <div id="targetDebuffsFields"></div>
   </section>
 
   <section class="panel panel-results" aria-label="Итоги расчёта">
@@ -91,18 +93,34 @@
 </footer>
 
 <script src="data/classes/_stub-skills.js"></script>
+<script src="data/classes/_shared-minor-talents.js"></script>
+<script src="data/classes/paladin/skills.js"></script>
+<script src="data/classes/paladin/talents.js"></script>
+<script src="data/classes/priest/skills.js"></script>
+<script src="data/classes/priest/talents.js"></script>
+<script src="data/classes/templar/skills.js"></script>
+<script src="data/classes/templar/talents.js"></script>
 <script src="data/classes/mage/skills.js"></script>
 <script src="data/classes/mage/talents.js"></script>
 <script src="data/classes/seeker/skills.js"></script>
 <script src="data/classes/seeker/talents.js"></script>
+<script src="data/classes/blade_dancer/skills.js"></script>
 <script src="data/classes/blade_dancer/talents.js"></script>
+<script src="data/classes/warden/skills.js"></script>
 <script src="data/classes/warden/talents.js"></script>
+<script src="data/classes/druid/skills.js"></script>
+<script src="data/classes/druid/talents.js"></script>
+<script src="data/classes/ranger/skills.js"></script>
+<script src="data/classes/ranger/talents.js"></script>
+<script src="data/classes/beastmaster/skills.js"></script>
+<script src="data/classes/beastmaster/talents.js"></script>
 <script src="data/classes.js"></script>
 <script src="data/stats.js"></script>
 <script src="data/talents.js"></script>
 <script src="data/buffs.js"></script>
 <script src="data/targets.js"></script>
 <script src="data/relics.js"></script>
+<script src="data/damage-grid.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/state.js"></script>

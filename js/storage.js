@@ -27,5 +27,17 @@ var WsStorage = (function () {
     return builds;
   }
 
-  return { loadAll: loadAll, addBuild: addBuild, removeBuild: removeBuild };
+  // Перезаписывает данные существующей сборки текущим состоянием (имя и id не меняются).
+  function updateBuild(id, snapshot) {
+    var builds = loadAll();
+    var build = builds.find(function (b) { return b.id === id; });
+    if (build) {
+      build.data = snapshot;
+      build.savedAt = Date.now();
+      saveAll(builds);
+    }
+    return builds;
+  }
+
+  return { loadAll: loadAll, addBuild: addBuild, removeBuild: removeBuild, updateBuild: updateBuild };
 })();

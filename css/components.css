@@ -127,6 +127,80 @@
   cursor: not-allowed;
 }
 
+.subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.subtab {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.subtab.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.subtabs--nested {
+  margin-left: 14px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+
+.subtabs--nested:empty {
+  display: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.subtabs--nested .subtab {
+  font-size: 11px;
+  padding: 3px 10px;
+}
+
+.subtabs--affiliation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.subtabs--affiliation:empty {
+  display: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.affiliation-select {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.affiliation-select__input {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--text);
+  font-size: 12px;
+}
+
 .tab-panel {
   display: none;
 }
@@ -185,6 +259,96 @@
   pointer-events: none;
 }
 
+/* --- damage grid (вкладка "Основная") --- */
+
+.dd-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+@media (max-width: 560px) {
+  .dd-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+.dd-extra-heading {
+  margin: 16px 0 6px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--text-muted);
+}
+
+.info-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  border-radius: 50%;
+  border: 1px solid var(--text-muted);
+  font-size: 10px;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: help;
+}
+
+.dd-cell__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.dd-cell__controls .dd-cell__select {
+  width: auto;
+  min-width: 48px;
+  flex-shrink: 0;
+  padding: 6px 4px;
+  font-size: 11px;
+}
+
+.dd-cell--unavailable label {
+  color: var(--text-muted);
+  opacity: .5;
+  cursor: help;
+}
+
+.dd-cell--unavailable .dd-cell__value {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.dd-cell__controls .dd-cell__value {
+  width: 56px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.dd-cell__dual-field {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 70px;
+}
+
+.dd-cell__dual-tag {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
 /* --- lists (talents/buffs/targets) --- */
 
 .option-list {
@@ -229,6 +393,26 @@
 
 .buff-suffix {
   font-size: 12px;
+  color: var(--text-muted);
+}
+
+.buff-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--bg);
+  margin-bottom: 10px;
+}
+
+.buff-card:last-child {
+  margin-bottom: 0;
+}
+
+.buff-card__title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
   color: var(--text-muted);
 }
 
@@ -412,9 +596,56 @@
   white-space: nowrap;
 }
 
+.skill-card__damage-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .skill-card__damage {
   font-weight: 600;
   flex-shrink: 0;
+  cursor: help;
+}
+
+.skill-card__crit-damage {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.skill-card__secondary-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.skill-card__secondary-label {
+  flex-shrink: 0;
+}
+
+.skill-card__damage--secondary {
+  font-weight: 600;
+  cursor: help;
+}
+
+.skill-card__mirror-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.relic-group-select {
+  font-size: 9px;
+  padding: 0;
+  border: none;
+  background: var(--bg-elevated);
+  color: var(--text);
+  max-width: 34px;
 }
 
 .skill-card__controls {
@@ -451,6 +682,12 @@
   justify-content: center;
   width: 22px;
   height: 22px;
+}
+
+.relic-icon-wrap--group {
+  width: auto;
+  padding: 0 12px 0 2px;
+  gap: 1px;
 }
 
 .relic-icon {

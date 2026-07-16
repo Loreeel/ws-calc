@@ -3,7 +3,9 @@
     var root = document.getElementById("savesList");
     root.innerHTML = "";
 
-    var builds = WsStorage.loadAll();
+    var builds = WsStorage.loadAll().slice().sort(function (a, b) {
+      return (b.savedAt || 0) - (a.savedAt || 0);
+    });
     if (builds.length === 0) {
       root.innerHTML = '<p class="panel__hint">Пока нет сохранённых сборок.</p>';
       return;
@@ -16,6 +18,7 @@
       var name = document.createElement("span");
       name.className = "save-row__name";
       name.textContent = b.name;
+      if (b.savedAt) name.title = "Сохранено: " + new Date(b.savedAt).toLocaleString();
 
       var actions = document.createElement("div");
       actions.className = "save-row__actions";
@@ -27,6 +30,15 @@
         WsState.restore(b.data);
       });
 
+      var updateBtn = document.createElement("button");
+      updateBtn.className = "secondary";
+      updateBtn.textContent = "Обновить";
+      updateBtn.title = "Перезаписать эту сборку текущими данными";
+      updateBtn.addEventListener("click", function () {
+        WsStorage.updateBuild(b.id, WsState.snapshot());
+        render();
+      });
+
       var delBtn = document.createElement("button");
       delBtn.className = "secondary";
       delBtn.textContent = "Удалить";
@@ -36,6 +48,7 @@
       });
 
       actions.appendChild(loadBtn);
+      actions.appendChild(updateBtn);
       actions.appendChild(delBtn);
       row.appendChild(name);
       row.appendChild(actions);

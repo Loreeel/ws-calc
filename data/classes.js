@@ -14,18 +14,18 @@
 
 var WS_CLASSES = [
   // --- Союз Sentinels / Фракция Chosen ---
-  { id: "paladin", name: "Paladin (Паладин)", union: "sentinels", faction: "chosen", role: "танк, ближний бой", damageTypes: ["physical", "magic"], skills: WS_STUB_SKILLS("paladin") },
+  { id: "paladin", name: "Paladin (Паладин)", union: "sentinels", faction: "chosen", role: "танк, ближний бой", damageTypes: ["physical", "magic"], skills: WS_PALADIN_SKILLS },
   { id: "mage", name: "Mage (Маг)", union: "sentinels", faction: "chosen", role: "кастер, урон", damageTypes: ["magic"], skills: WS_MAGE_SKILLS },
-  { id: "priest", name: "Priest (Жрец)", union: "sentinels", faction: "chosen", role: "кастер, хил", damageTypes: ["physical", "magic"], skills: WS_STUB_SKILLS("priest") },
+  { id: "priest", name: "Priest (Жрец)", union: "sentinels", faction: "chosen", role: "кастер, хил", damageTypes: ["magic"], skills: WS_PRIEST_SKILLS },
   { id: "seeker", name: "Seeker (Искатель)", union: "sentinels", faction: "chosen", role: "дальний бой, арбалет", damageTypes: ["physical"], skills: WS_SEEKER_SKILLS },
-  { id: "templar", name: "Templar (Храмовник)", union: "sentinels", faction: "chosen", role: "гибрид танк/дд", damageTypes: ["physical", "magic"], skills: WS_STUB_SKILLS("templar") },
+  { id: "templar", name: "Templar (Храмовник)", union: "sentinels", faction: "chosen", role: "гибрид танк/дд", damageTypes: ["physical", "magic"], skills: WS_TEMPLAR_SKILLS },
 
   // --- Союз Sentinels / Фракция Firstborn ---
-  { id: "blade_dancer", name: "Blade Dancer (Танцор клинка)", union: "sentinels", faction: "firstborn", role: "ближний бой, дуал-вилд", damageTypes: ["physical", "magic"], skills: WS_STUB_SKILLS("blade_dancer") },
-  { id: "ranger", name: "Ranger (Рейнджер)", union: "sentinels", faction: "firstborn", role: "лук, дальний бой", damageTypes: ["physical", "magic"], skills: WS_STUB_SKILLS("ranger") },
-  { id: "druid", name: "Druid (Друид)", union: "sentinels", faction: "firstborn", role: "кастер, хил", damageTypes: ["physical", "magic"], skills: WS_STUB_SKILLS("druid") },
-  { id: "warden", name: "Warden (Страж)", union: "sentinels", faction: "firstborn", role: "танк, ближний бой", damageTypes: ["physical", "magic"], skills: WS_STUB_SKILLS("warden") },
-  { id: "beastmaster", name: "Beastmaster (Ловчий)", union: "sentinels", faction: "firstborn", role: "дд с питомцем", damageTypes: ["physical", "magic"], skills: WS_STUB_SKILLS("beastmaster") },
+  { id: "blade_dancer", name: "Blade Dancer (Танцор клинка)", union: "sentinels", faction: "firstborn", role: "ближний бой, дуал-вилд", damageTypes: ["physical"], skills: WS_BLADE_DANCER_SKILLS },
+  { id: "ranger", name: "Ranger (Рейнджер)", union: "sentinels", faction: "firstborn", role: "лук, дальний бой", damageTypes: ["physical"], skills: WS_RANGER_SKILLS },
+  { id: "druid", name: "Druid (Друид)", union: "sentinels", faction: "firstborn", role: "кастер, хил", damageTypes: ["magic"], skills: WS_DRUID_SKILLS },
+  { id: "warden", name: "Warden (Страж)", union: "sentinels", faction: "firstborn", role: "танк, ближний бой", damageTypes: ["physical"], skills: WS_WARDEN_SKILLS },
+  { id: "beastmaster", name: "Beastmaster (Ловчий)", union: "sentinels", faction: "firstborn", role: "дд с питомцем", damageTypes: ["physical", "magic"], skills: WS_BEASTMASTER_SKILLS },
 
   // --- Союз Legion / Фракция Mountain Clans ---
   { id: "barbarian", name: "Barbarian (Варвар)", union: "legion", faction: "mountain_clans", role: "танк со щитом", damageTypes: ["physical", "magic"], skills: WS_STUB_SKILLS("barbarian") },

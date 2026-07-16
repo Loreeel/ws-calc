@@ -3,12 +3,12 @@
 
   var GROUP_LABELS = {
     meta: null,
-    attack: "Атака",
+    attack: "Экипировка",
     defense: "Защита"
   };
 
   // Ряд 2 группы "Атака" — не зависит от типа урона класса.
-  var ATTACK_ROW2 = ["penetrationPower", "skillPower", "critDamagePower", "autoAttackPower"];
+  var ATTACK_ROW2 = ["penetrationPower", "skillPower", "critDamagePower", "autoAttackPower", "depthsWrath"];
 
   function allDefsFlat() {
     return [].concat(WS_STATS.meta, WS_STATS.attack, WS_STATS.defense);
@@ -23,25 +23,202 @@
     return (cls && cls.damageTypes) || ["physical", "magic"];
   }
 
-  // Физ./маг. атака всегда делится на "fix" (число) + "%" (неотключаемые % бонусы) —
-  // для корректного расчёта их всё равно нужно вводить отдельно (см. getPowerBreakdown).
-  // Показываются только типы урона, которые использует выбранный класс (damageTypes).
-  function getAttackRow1(damageTypes) {
-    var ids = [];
-    var labelOverrides = {};
+  var TYPE_LABELS = { physical: "Физ.", magic: "Маг." };
 
-    if (damageTypes.indexOf("physical") !== -1) {
-      ids.push("physPower");
-      labelOverrides.physPower = "Physical Power, fix";
-      ids.push("physPowerPercent");
-    }
-    if (damageTypes.indexOf("magic") !== -1) {
-      ids.push("magicPower");
-      labelOverrides.magicPower = "Magic Power, fix";
-      ids.push("magicPowerPercent");
+  // Ячейка сетки "ДД" (см. data/damage-grid.js), привязана к слоту экипировки.
+  // locked — слот структурно не даёт ДД (напр. Шлем): поле неактивно всегда.
+  // magicOnly — слот даёт ДД только классам с магическим уроном (Доспех/Перчатки/Пояс):
+  //   жёстко типа "magic" (без выбора типа), недоступен классам без магии.
+  // Иначе: для классов с двумя типами урона — свой выбор типа на ячейку (как у баффов).
+  // mode "choice" даёт ещё выбор фикс./% ДД, mode "fixed" — только число.
+  function buildGridCell(cell, damageTypes, state) {
+    var cfg = state.damageGrid[cell.id];
+    var unavailable = cell.locked || (cell.magicOnly && damageTypes.indexOf("magic") === -1);
+
+    var wrap = document.createElement("div");
+    wrap.className = "field dd-cell" + (unavailable ? " dd-cell--unavailable" : "");
+
+    var label = document.createElement("label");
+    label.textContent = cell.name || "—";
+    if (cell.locked) label.title = "В этом слоте не бывает ДД";
+    else if (unavailable) label.title = "Доступно только классам с магическим уроном";
+    wrap.appendChild(label);
+
+    var controls = document.createElement("div");
+    controls.className = "dd-cell__controls";
+
+    if (unavailable) {
+      var lockedInput = document.createElement("input");
+      lockedInput.type = "number";
+      lockedInput.className = "dd-cell__value";
+      lockedInput.disabled = true;
+      controls.appendChild(lockedInput);
+      wrap.appendChild(controls);
+      return wrap;
     }
 
-    return { ids: ids, labelOverrides: labelOverrides };
+    if (!cell.magicOnly && damageTypes.length > 1) {
+      var typeSelect = document.createElement("select");
+      typeSelect.className = "dd-cell__select";
+      damageTypes.forEach(function (type) {
+        var opt = document.createElement("option");
+        opt.value = type;
+        opt.textContent = TYPE_LABELS[type];
+        typeSelect.appendChild(opt);
+      });
+      typeSelect.value = cfg.type;
+      typeSelect.addEventListener("change", function () {
+        WsState.setDamageGridCell(cell.id, { type: typeSelect.value });
+      });
+      controls.appendChild(typeSelect);
+    }
+
+    if (cell.mode === "dual") {
+      // Фиксированный ДД и % ДД одновременно — два отдельных поля, без выбора режима.
+      var fixWrap = document.createElement("span");
+      fixWrap.className = "dd-cell__dual-field";
+      var fixTag = document.createElement("span");
+      fixTag.className = "dd-cell__dual-tag";
+      fixTag.textContent = "Фикс.";
+      var fixInput = document.createElement("input");
+      fixInput.type = "number";
+      fixInput.className = "dd-cell__value";
+      fixInput.value = cfg.value;
+      fixInput.addEventListener("input", function () {
+        WsState.setDamageGridCell(cell.id, { value: Number(fixInput.value) || 0 });
+      });
+      fixWrap.appendChild(fixTag);
+      fixWrap.appendChild(fixInput);
+      controls.appendChild(fixWrap);
+
+      var pctWrap = document.createElement("span");
+      pctWrap.className = "dd-cell__dual-field";
+      var pctTag = document.createElement("span");
+      pctTag.className = "dd-cell__dual-tag";
+      pctTag.textContent = "%";
+      var pctInput = document.createElement("input");
+      pctInput.type = "number";
+      pctInput.className = "dd-cell__value";
+      pctInput.value = cfg.percentValue;
+      pctInput.addEventListener("input", function () {
+        WsState.setDamageGridCell(cell.id, { percentValue: Number(pctInput.value) || 0 });
+      });
+      pctWrap.appendChild(pctTag);
+      pctWrap.appendChild(pctInput);
+      controls.appendChild(pctWrap);
+
+      wrap.appendChild(controls);
+      return wrap;
+    }
+
+    if (cell.mode === "choice") {
+      var modeSelect = document.createElement("select");
+      modeSelect.className = "dd-cell__select";
+      [["fixed", "Фикс."], ["percent", "%"]].forEach(function (pair) {
+        var opt = document.createElement("option");
+        opt.value = pair[0];
+        opt.textContent = pair[1];
+        modeSelect.appendChild(opt);
+      });
+      modeSelect.value = cfg.mode;
+      modeSelect.addEventListener("change", function () {
+        WsState.setDamageGridCell(cell.id, { mode: modeSelect.value });
+      });
+      controls.appendChild(modeSelect);
+    }
+
+    var input = document.createElement("input");
+    input.type = "number";
+    input.className = "dd-cell__value";
+    input.value = cfg.value;
+    input.addEventListener("input", function () {
+      WsState.setDamageGridCell(cell.id, { value: Number(input.value) || 0 });
+    });
+    controls.appendChild(input);
+
+    wrap.appendChild(controls);
+    return wrap;
+  }
+
+  var TYPE_NAMES = { physical: "физ.", magic: "маг." };
+
+  // Обычный режим экипировки: один агрегированный фикс. + % ДД на тип урона класса
+  // (вместо ввода по каждому предмету). Продвинутый режим — детальная сетка (15 полей).
+  function renderEquipmentModeToggle(root, state) {
+    var toggleRow = document.createElement("div");
+    toggleRow.className = "subtabs";
+
+    [["basic", "Обычный"], ["advanced", "Продвинутый"]].forEach(function (pair) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "subtab" + (state.equipmentMode === pair[0] ? " is-active" : "");
+      btn.textContent = pair[1];
+      btn.addEventListener("click", function () {
+        if (state.equipmentMode === pair[0]) return;
+        WsState.setEquipmentMode(pair[0]);
+      });
+      toggleRow.appendChild(btn);
+    });
+
+    root.appendChild(toggleRow);
+  }
+
+  function buildAggregateField(labelText, value, onChange) {
+    var wrap = document.createElement("div");
+    wrap.className = "field";
+
+    var label = document.createElement("label");
+    label.textContent = labelText;
+    wrap.appendChild(label);
+
+    var input = document.createElement("input");
+    input.type = "number";
+    input.value = value;
+    input.addEventListener("input", function () {
+      onChange(Number(input.value) || 0);
+    });
+    wrap.appendChild(input);
+
+    return wrap;
+  }
+
+  function renderEquipmentAggregate(root, damageTypes, state) {
+    var grid = document.createElement("div");
+    grid.className = "field-grid";
+
+    damageTypes.forEach(function (type) {
+      var typeSuffix = damageTypes.length > 1 ? " (" + TYPE_NAMES[type] + ")" : "";
+      var agg = state.equipmentAggregate[type];
+
+      grid.appendChild(buildAggregateField("Фиксированный урон экипировки" + typeSuffix, agg.fixed, function (value) {
+        WsState.setEquipmentAggregate(type, { fixed: value });
+      }));
+      grid.appendChild(buildAggregateField("% ДД экипировки" + typeSuffix, agg.percent, function (value) {
+        WsState.setEquipmentAggregate(type, { percent: value });
+      }));
+    });
+
+    root.appendChild(grid);
+  }
+
+  function renderDamageGrid(root, damageTypes, state) {
+    // Для классов с одним типом урона незаблокированные не-magicOnly ячейки жёстко
+    // фиксируются на нём (magicOnly уже жёстко на "magic" по умолчанию, locked не важен).
+    if (damageTypes.length === 1) {
+      WS_DAMAGE_GRID.forEach(function (cell) {
+        if (cell.locked || cell.magicOnly) return;
+        if (state.damageGrid[cell.id].type !== damageTypes[0]) {
+          state.damageGrid[cell.id].type = damageTypes[0];
+        }
+      });
+    }
+
+    var grid = document.createElement("div");
+    grid.className = "dd-grid";
+    WS_DAMAGE_GRID.forEach(function (cell) {
+      grid.appendChild(buildGridCell(cell, damageTypes, state));
+    });
+    root.appendChild(grid);
   }
 
   function buildField(def, state, labelText) {
@@ -110,9 +287,9 @@
     var envMode = state.envMode;
 
     // Не перестраиваем DOM на каждое изменение стата (иначе теряется фокус ввода),
-    // только когда меняется prod/dev или класс (влияет на видимость полей физ./маг.
-    // урона через damageTypes).
-    var cacheKey = envMode + "|" + state.classId;
+    // только когда меняется prod/dev, класс (влияет на видимость полей физ./маг. урона
+    // через damageTypes) или режим ввода экипировки (обычный/продвинутый).
+    var cacheKey = envMode + "|" + state.classId + "|" + state.equipmentMode;
     if (cacheKey === lastCacheKey) return;
     lastCacheKey = cacheKey;
 
@@ -121,8 +298,26 @@
     renderGroup(root, "meta", WS_STATS.meta, state);
 
     renderHeading(root, "attack");
-    var row1 = getAttackRow1(getDamageTypes(state.classId));
-    renderFieldsRow(root, row1.ids, state, row1.labelOverrides);
+    renderEquipmentModeToggle(root, state);
+
+    var damageTypes = getDamageTypes(state.classId);
+    if (state.equipmentMode === "basic") {
+      renderEquipmentAggregate(root, damageTypes, state);
+    } else {
+      renderDamageGrid(root, damageTypes, state);
+    }
+
+    var extraHeading = document.createElement("h3");
+    extraHeading.className = "dd-extra-heading";
+    extraHeading.textContent = "Дополнительные ДД характеристики";
+
+    var extraHint = document.createElement("span");
+    extraHint.className = "info-hint";
+    extraHint.textContent = "?";
+    extraHint.title = "На данный момент подсчёт параметров из талантов и экипировки не реализован, поэтому вводите реальные параметры своего персонажа из игры.";
+    extraHeading.appendChild(extraHint);
+
+    root.appendChild(extraHeading);
     renderFieldsRow(root, ATTACK_ROW2, state);
 
     if (envMode === "dev") {
